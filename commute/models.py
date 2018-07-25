@@ -56,5 +56,6 @@ class Route(models.Model):
 
 
 class User(models.Model):
+    name = models.CharField(max_length=15)
     selected_flat = models.ForeignKey(Flat, on_delete=models.CASCADE, related_name="users_with_flat_selected")
     flats = models.ManyToManyField(Flat)
