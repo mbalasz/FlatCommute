@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <select>
+        {% for flat in flats %}
+            <option value="{{flat.id}}">{{flat.address}}</option>
+        {% endfor %}
+    </select>
+</head>
+<body>
+
+</body>
+</html>

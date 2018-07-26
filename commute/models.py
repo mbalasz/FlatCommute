@@ -22,7 +22,7 @@ class Flat(models.Model):
     address = models.ForeignKey(Address, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.address
+        return self.address.address
 
 
 DAY_OF_THE_WEEK = {
