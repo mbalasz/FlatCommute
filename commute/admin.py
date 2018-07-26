@@ -8,3 +8,4 @@ admin.site.register(Flat)
 admin.site.register(Route)
 admin.site.register(User)
 admin.site.register(Address)
+
