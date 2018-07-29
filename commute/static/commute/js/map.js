@@ -8,17 +8,36 @@ function initMap() {
     center: {lat: -34.397, lng: 150.644},
     zoom: 8
   });
+  mapLocationPromises = [];
   initAddresses = getInitAddresses();
-  addressesLength = initAddresses.length;
-  addedMarkers = 0;
-  for (i = 0; i < addressesLength; ++i) {
-    addPlaceMarker(initAddresses[i], '', function() {
-      ++addedMarkers;
-      if (addedMarkers === addressesLength) {
-        centerMap();
-      }
-    });
+  for (i = 0; i < initAddresses.length; ++i) {
+    mapLocationPromises.push(getMapLocation(initAddresses[i]));
   }
+  Promise.all(mapLocationPromises).then(function(mapLocations) {
+    for (i = 0; i < mapLocations.length; ++i) {
+      addMarker(mapLocations[i]);
+    }
+    showSelectedFlat();
+  });
+}
+
+function addMarker(location, icon) {
+  icon = icon || ''
+  var marker = new google.maps.Marker({
+    map: map,
+    position: location,
+    icon: icon,
+  });
+  markers.push(marker);
+  return marker;
+}
+
+function showSelectedFlat() {
+  getMapLocation(getSelectedFlatAddress()).then(function(location) {
+    var marker = addMarker(location, getFlatMarkerImage());
+    setCurrentFlatMarker(marker);
+    centerMap();
+  })
 }
 
 function centerMap() {
@@ -29,31 +48,18 @@ function centerMap() {
   map.fitBounds(bounds);
 }
 
-function addPlaceMarker(address, markerIcon, onPlaceShown) {
-  console.log("Adding " + `${address}`);
-  markerIcon = markerIcon || '';
-  geocoder.geocode(
-    { 'address': address},
-    function(results, status) {
-      if (status == 'OK') {
-        var marker = new google.maps.Marker({
-            map: map,
-            position: results[0].geometry.location,
-            icon: markerIcon,
-        });
-        markers.push(marker);
-        if (onPlaceShown != null) {
-          onPlaceShown(marker);
+function getMapLocation(address) {
+  return new Promise(function(resolve, reject) {
+    geocoder.geocode(
+      { 'address': address},
+      function(results, status) {
+        if (status == 'OK') {
+          resolve(results[0].geometry.location);
+        } else {
+          reject('Geocode was not successful for the following reason: ' + status);
         }
-      } else {
-        alert('Geocode was not successful for the following reason: ' + status);
-      }
-    });
-}
-
-function onNewFlatMarkerAdded(marker) {
-  setCurrentFlatMarker(marker);
-  centerMap();
+      });
+  });
 }
 
 function setCurrentFlatMarker(marker) {
@@ -79,5 +85,9 @@ function getSelectedFlatAddress() {
 
 function updateFlatMarker() {
   removeMarker(currentFlatMarker);
-  addPlaceMarker(getSelectedFlatAddress(), 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png', onNewFlatMarkerAdded)
+  showSelectedFlat();
+}
+
+function getFlatMarkerImage() {
+  return 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png';
 }
