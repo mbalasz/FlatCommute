@@ -18,6 +18,20 @@
       }
     </style>
 </head>
+
+<script>
+    function fullAddress(address) {
+        return `${address},{{city}}`;
+    }
+
+    function getInitAddresses() {
+      var addresses = [];
+      {% for place in places %}
+          addresses.push(fullAddress("{{place.address}}"));
+      {% endfor %}
+      return addresses;
+    }
+</script>
 <body>
     <div id="flat">
         <select id="current-flat" onchange="updateFlatMarker();">
@@ -28,56 +42,8 @@
     </div>
 
     <div id="map"></div>
-        <script>
-          var map;
-          var currentFlatMarker;
-          function initMap() {
-            geocoder = new google.maps.Geocoder();
-            map = new google.maps.Map(document.getElementById('map'), {
-              center: {lat: -34.397, lng: 150.644},
-              zoom: 8
-            });
-            showPlacesOnTheMap();
-          }
-
-          function showPlacesOnTheMap() {
-            {% for place in places %}
-                codeAddress("{{place.address}},{{city}}");
-            {% endfor %}
-          }
-
-          function codeAddress(address, markerIcon, onMarkerAddedCallback) {
-            markerIcon = markerIcon || '';
-            geocoder.geocode( { 'address': address}, function(results, status) {
-                if (status == 'OK') {
-                  map.setCenter(results[0].geometry.location);
-                  var marker = new google.maps.Marker({
-                      map: map,
-                      position: results[0].geometry.location,
-                      icon: markerIcon,
-                  });
-                  if (onMarkerAddedCallback != null) {
-                    onMarkerAddedCallback(marker);
-                  }
-                } else {
-                  alert('Geocode was not successful for the following reason: ' + status);
-                }
-            });
-           }
-
-          function setCurrentFlatMarker(marker) {
-            currentFlatMarker = marker;
-          }
-
-          function updateFlatMarker() {
-            if (currentFlatMarker != null) {
-                currentFlatMarker.setMap(null);
-            }
-            var sel = document.getElementById('current-flat');
-            var selectedFlat = sel.options[sel.selectedIndex].text;
-            codeAddress(`${selectedFlat}, {{city}}`, 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png', setCurrentFlatMarker)
-          }
-        </script>
+        {% load staticfiles %}
+        <script src="{% static 'commute/js/map.js' %}"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYf7j5i15fANkXyRU-A4zjt8_q0AnTzkE&callback=initMap"
     async defer></script>
 
