@@ -39,14 +39,16 @@
     }
 </script>
 <body>
-    <div id="flat">
+
+    <div id="map" style="float: left;"></div>
+    <div id="flat" >
         <select id="current-flat" onchange="updateFlatMarker();">
             {% for flat in flats %}
                 <option value="{{flat.id}}">{{flat.address}}</option>
             {% endfor %}
         </select>
     </div>
-    <div>
+    <div style="float: right;">
         <ul>
         {% for place in places %}
             <li>
@@ -57,8 +59,6 @@
         {% endfor %}
         </ul>
     </div>
-
-    <div id="map"></div>
         {% load staticfiles %}
         <script src="{% static 'commute/js/map.js' %}"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYf7j5i15fANkXyRU-A4zjt8_q0AnTzkE&callback=initMap"
