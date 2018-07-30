@@ -25,11 +25,16 @@
     }
 
     function getInitAddresses() {
-      var addresses = [];
+
+      var places = [];
       {% for place in places %}
-          addresses.push(fullAddress("{{place.address}}"));
+          var place = {
+            name: "{{place.name}}",
+            address: fullAddress("{{place.address}}"),
+          }
+          places.push(place);
       {% endfor %}
-      return addresses;
+      return places;
     }
 </script>
 <body>
