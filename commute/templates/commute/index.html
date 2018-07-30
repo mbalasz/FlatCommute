@@ -29,6 +29,7 @@
       var places = [];
       {% for place in places %}
           var place = {
+            id: {{place.id}},
             name: "{{place.name}}",
             address: fullAddress("{{place.address}}"),
           }
@@ -44,6 +45,17 @@
                 <option value="{{flat.id}}">{{flat.address}}</option>
             {% endfor %}
         </select>
+    </div>
+    <div>
+        <ul>
+        {% for place in places %}
+            <li>
+                <div id="{{place.id}}" onmouseover="showInfoWindowForMarker({{place.id}})">
+                    {{place.name}}: {{place.address}}
+                </div>
+            </li>
+        {% endfor %}
+        </ul>
     </div>
 
     <div id="map"></div>

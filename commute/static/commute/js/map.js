@@ -16,13 +16,14 @@ function initMap() {
     var place = places[i];
     var address = place.address;
     var name = place.name;
+    var id = place.id;
     var locationPromise = getMapLocation(address);
-    (function(name, address) {
+    (function(id, name, address) {
       locationPromise.then(function(location) {
-        var marker = addMarker(location, name, address);
+        var marker = addMarker(location, id);
         addInfoWindow(marker, name + ": " + address);
       });
-    })(name, address)
+    })(id, name, address)
     mapLocationPromises.push(locationPromise);
   }
   Promise.all(mapLocationPromises).then(function(mapLocations) {
@@ -34,22 +35,35 @@ function addInfoWindow(marker, content) {
   var infoWindow = new google.maps.InfoWindow({
     content: content
   });
+  marker.info = infoWindow;
   marker.addListener('click', function() {
-    if (currInfoWindow != null) {
-      currInfoWindow.close();
-    }
-    currInfoWindow = infoWindow;
-    infoWindow.open(map, marker);
+    showInfoWindow(infoWindow, marker);
   });
 }
 
-function addMarker(location, name, address, icon) {
+function showInfoWindow(infoWindow, marker) {
+  if (currInfoWindow != null) {
+    currInfoWindow.close();
+  }
+  currInfoWindow = infoWindow;
+  infoWindow.open(map, marker);
+}
+
+function showInfoWindowForMarker(placeId) {
+  for (i = 0; i < markers.length; ++i) {
+    var marker = markers[i];
+    if (marker.id == placeId) {
+      showInfoWindow(marker.info, marker);
+    }
+  }
+}
+
+function addMarker(location, id, icon) {
   icon = icon || ''
   var marker = new google.maps.Marker({
     map: map,
     position: location,
-    address: address,
-    name: name,
+    id: id,
     icon: icon,
   });
   markers.push(marker);
@@ -59,7 +73,7 @@ function addMarker(location, name, address, icon) {
 function showSelectedFlat() {
   var address = getSelectedFlatAddress()
   getMapLocation(address).then(function(location) {
-    var marker = addMarker(location, '', address, getFlatMarkerImage());
+    var marker = addMarker(location, null, getFlatMarkerImage());
     addInfoWindow(marker, "Selected flat: " + address);
     setCurrentFlatMarker(marker);
     centerMap();
