@@ -49,7 +49,7 @@ function showInfoWindow(infoWindow, marker) {
   infoWindow.open(map, marker);
 }
 
-function showInfoWindowForMarker(placeId) {
+function showInfoWindowForPlace(placeId) {
   for (i = 0; i < markers.length; ++i) {
     var marker = markers[i];
     if (marker.id == placeId) {
