@@ -1,3 +1,6 @@
+var CYCLE_TRAVEL_MODE = "BICYCLING";
+var TRANSIT_TRAVEL_MODE = "TRANSIT";
+
 var map;
 var currentFlatMarker;
 var markers = [];
@@ -38,30 +41,74 @@ function initMap() {
   });
 }
 
-function showRouteToPlace(placeAddress) {
+function showCyclingRouteToPlace(placeAddress, placeId) {
   if (placeAddress != null) {
-    calculateAndDisplayRoute(getSelectedFlatAddress(), placeAddress);
+    calculateRoute(getSelectedFlatAddress(), placeAddress, CYCLE_TRAVEL_MODE).then(function(directionResult) {
+      directionsDisplay.setDirections(directionResult);
+    });
   }
 }
 
-function calculateAndDisplayRoute(origin, destination) {
-  directionsService.route({
-    origin: origin,
-    destination: destination,
-    travelMode: "TRANSIT",
-  }, function(response, status) {
-    if (status === 'OK') {
-      directionsDisplay.setDirections(response);
-      showRouteStats(response);
-    } else {
-      window.alert('Directions request failed due to ' + status);
-    }
+function showTransitRouteToPlace(placeAddress, placeId) {
+  if (placeAddress != null) {
+    calculateRoute(getSelectedFlatAddress(), placeAddress, TRANSIT_TRAVEL_MODE).then(function(directionResult) {
+      directionsDisplay.setDirections(directionResult);
+    });
+  }
+}
+
+function calculateRoute(origin, destination, travelMode) {
+  return new Promise(function(resolve, reject) {
+    directionsService.route({
+      origin: origin,
+      destination: destination,
+      travelMode: travelMode,
+      transitOptions: {
+        departureTime: new Date('July 30, 2018 13:24:00')
+      },
+    }, function(response, status) {
+      if (status === 'OK') {
+        resolve(response);
+      } else {
+        reject('Directions request failed due to ' + status)
+      }
+    });
   });
 }
 
-function showRouteStats(directionResult) {
-  var leg = directionResult.routes[0].legs[0];
-  document.getElementById('stats').innerHTML = leg.duration.text;
+function showRouteStats(directionResult, elementId) {
+  document.getElementById(elementId).innerHTML = leg.duration.text;
+}
+
+function getAddressByPlaceId(placeId) {
+  for (var i = 0; i < places.length; ++i) {
+    if (places[i].id == placeId) {
+      return places[i].address;
+    }
+  }
+  return null;
+}
+
+function updateRouteStats() {
+  for (var i = 0; i < places.length; ++i) {
+    var placeId = places[i].id;
+    var placeEl = document.getElementById(placeId);
+    var address = getAddressByPlaceId(placeId);
+    (function(placeEl) {
+      calculateRoute(getSelectedFlatAddress(), address, CYCLE_TRAVEL_MODE).then(function(directionsResult) {
+        var leg = directionsResult.routes[0].legs[0];
+        placeEl.querySelector("#cycle-time").innerHTML = leg.duration.text;
+      }, function(err) {
+        console.log(err);
+      });
+      calculateRoute(getSelectedFlatAddress(), address, TRANSIT_TRAVEL_MODE).then(function(directionsResult) {
+        var leg = directionsResult.routes[0].legs[0];
+        placeEl.querySelector("#transit-time").innerHTML = leg.duration.text;
+      }, function(err) {
+        console.log(err);
+      });
+    })(placeEl);
+  }
 }
 
 function addInfoWindow(marker, content) {
@@ -164,6 +211,7 @@ function updateFlatMarker() {
   removeMarker(currentFlatMarker);
   resetMap();
   showSelectedFlat();
+  updateRouteStats();
 }
 
 function getFlatMarkerImage() {

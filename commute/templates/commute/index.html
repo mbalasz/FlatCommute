@@ -17,6 +17,10 @@
         padding: 0;
       }
     </style>
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
 </head>
 
 <script>
@@ -40,26 +44,48 @@
 </script>
 <body>
 
-    <div id="map" style="float: left;"></div>
-    <div id="flat" >
-        <select id="current-flat" onchange="updateFlatMarker();">
-            {% for flat in flats %}
-                <option value="{{flat.id}}">{{flat.address}}</option>
-            {% endfor %}
-        </select>
+        <div id="map"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-4">
+            <div id="flat" >
+                <select id="current-flat" onchange="updateFlatMarker();">
+                    {% for flat in flats %}
+                        <option value="{{flat.id}}">{{flat.address}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-lg">
+            <div>
+                <ul>
+                {% for place in places %}
+                    <li>
+                        <div class="row" id="{{place.id}}">
+                            <div class="col-5">
+                                {{place.name}}: {{place.address}}
+                            </div>
+                            <div class="col-sm" onclick="showCyclingRouteToPlace(fullAddress('{{place.address}}'))">
+                              <button>Cycle</button>
+                            </div>
+                            <div  class="col-sm">
+                              <p id="cycle-time"></p>
+                            </div>
+                            <div class="col-sm" onclick="showTransitRouteToPlace(fullAddress('{{place.address}}'))">
+                              <button>Transit</button>
+                            </div>
+                            <div class="col-sm">
+                              <p id="transit-time"></p>
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+      </div>
     </div>
     <div id="stats"></div>
-    <div style="float: right;">
-        <ul>
-        {% for place in places %}
-            <li>
-                <div id="{{place.id}}" onclick="showRouteToPlace(fullAddress('{{place.address}}'))">
-                    {{place.name}}: {{place.address}}
-                </div>
-            </li>
-        {% endfor %}
-        </ul>
-    </div>
         {% load staticfiles %}
         <script src="{% static 'commute/js/map.js' %}"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYf7j5i15fANkXyRU-A4zjt8_q0AnTzkE&callback=initMap"
