@@ -48,11 +48,12 @@
             {% endfor %}
         </select>
     </div>
+    <div id="stats"></div>
     <div style="float: right;">
         <ul>
         {% for place in places %}
             <li>
-                <div id="{{place.id}}" onmouseover="showInfoWindowForPlace({{place.id}})">
+                <div id="{{place.id}}" onclick="showRouteToPlace(fullAddress('{{place.address}}'))">
                     {{place.name}}: {{place.address}}
                 </div>
             </li>

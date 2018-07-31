@@ -3,13 +3,20 @@ var currentFlatMarker;
 var markers = [];
 var places = [];
 var currInfoWindow;
+var directionsService;
+var directionsDisplay;
 
 function initMap() {
   geocoder = new google.maps.Geocoder();
+  directionsService = new google.maps.DirectionsService;
+  directionsDisplay = new google.maps.DirectionsRenderer({
+    suppressMarkers: true
+  });
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: -34.397, lng: 150.644},
     zoom: 8
   });
+  directionsDisplay.setMap(map);
   mapLocationPromises = [];
   places = getInitAddresses();
   for (i = 0; i < places.length; ++i) {
@@ -29,6 +36,32 @@ function initMap() {
   Promise.all(mapLocationPromises).then(function(mapLocations) {
     showSelectedFlat();
   });
+}
+
+function showRouteToPlace(placeAddress) {
+  if (placeAddress != null) {
+    calculateAndDisplayRoute(getSelectedFlatAddress(), placeAddress);
+  }
+}
+
+function calculateAndDisplayRoute(origin, destination) {
+  directionsService.route({
+    origin: origin,
+    destination: destination,
+    travelMode: "TRANSIT",
+  }, function(response, status) {
+    if (status === 'OK') {
+      directionsDisplay.setDirections(response);
+      showRouteStats(response);
+    } else {
+      window.alert('Directions request failed due to ' + status);
+    }
+  });
+}
+
+function showRouteStats(directionResult) {
+  var leg = directionResult.routes[0].legs[0];
+  document.getElementById('stats').innerHTML = leg.duration.text;
 }
 
 function addInfoWindow(marker, content) {
@@ -117,6 +150,10 @@ function removeMarker(marker) {
   }
 }
 
+function resetMap() {
+  directionsDisplay.setDirections({routes: []});
+}
+
 function getSelectedFlatAddress() {
   var sel = document.getElementById('current-flat');
   var selectedFlat = sel.options[sel.selectedIndex].text;
@@ -125,6 +162,7 @@ function getSelectedFlatAddress() {
 
 function updateFlatMarker() {
   removeMarker(currentFlatMarker);
+  resetMap();
   showSelectedFlat();
 }
 
