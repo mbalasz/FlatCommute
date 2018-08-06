@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import models
 
 
@@ -43,12 +45,29 @@ class Day(models.CharField):
         super(Day, self).__init__(*args, **kwargs)
 
 
-CUSTOM = "CUSTOM"
-CURRENT_FLAT = "CURRENT_FLAT"
+CUSTOM = 0
+CURRENT_FLAT = 1
 PLACE_TYPE = (
     (CURRENT_FLAT, "Current flat"),
     (CUSTOM, "Custom place")
 )
+
+CYCLE = "cycle"
+TRANSIT = "transit"
+COMMUTE_TYPE = (
+    (CYCLE, "Cycling"),
+    (TRANSIT, "Transit")
+)
+
+
+class Distance(models.Model):
+    origin = models.ForeignKey(Flat, on_delete=models.CASCADE)
+    destination = models.ForeignKey(Place, on_delete=models.CASCADE)
+    duration = models.DurationField(default=timedelta(minutes=0))
+    commute_type = models.CharField(max_length=15, choices=COMMUTE_TYPE, default=TRANSIT)
+
+    def __str__(self):
+        return self.origin.address.address + " -> " + self.destination.name + " [" + self.commute_type + "]"
 
 
 class Route(models.Model):

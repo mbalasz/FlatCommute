@@ -3,11 +3,21 @@ var TRANSIT_TRAVEL_MODE = "TRANSIT";
 
 var map;
 var currentFlatMarker;
+var selectedFlat;
 var markers = [];
 var places = [];
 var currInfoWindow;
 var directionsService;
 var directionsDisplay;
+var cacheManager;
+
+
+class Flat {
+  constructor(id, address) {
+    this.id = id;
+    this.address = address;
+  }
+}
 
 function initMap() {
   geocoder = new google.maps.Geocoder();
@@ -15,6 +25,7 @@ function initMap() {
   directionsDisplay = new google.maps.DirectionsRenderer({
     suppressMarkers: true
   });
+  cacheManager = new CacheManager();
   map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: -34.397, lng: 150.644},
     zoom: 8
@@ -37,13 +48,13 @@ function initMap() {
     mapLocationPromises.push(locationPromise);
   }
   Promise.all(mapLocationPromises).then(function(mapLocations) {
-    showSelectedFlat();
+    showSelectedFlat(getSelectedFlatAddressFromHTML());
   });
 }
 
 function showCyclingRouteToPlace(placeAddress, placeId) {
   if (placeAddress != null) {
-    calculateRoute(getSelectedFlatAddress(), placeAddress, CYCLE_TRAVEL_MODE).then(function(directionResult) {
+    calculateRoute(selectedFlat.address, placeAddress, CYCLE_TRAVEL_MODE).then(function(directionResult) {
       directionsDisplay.setDirections(directionResult);
     });
   }
@@ -51,7 +62,7 @@ function showCyclingRouteToPlace(placeAddress, placeId) {
 
 function showTransitRouteToPlace(placeAddress, placeId) {
   if (placeAddress != null) {
-    calculateRoute(getSelectedFlatAddress(), placeAddress, TRANSIT_TRAVEL_MODE).then(function(directionResult) {
+    calculateRoute(selectedFlat.address, placeAddress, TRANSIT_TRAVEL_MODE).then(function(directionResult) {
       directionsDisplay.setDirections(directionResult);
     });
   }
@@ -89,26 +100,39 @@ function getAddressByPlaceId(placeId) {
   return null;
 }
 
-function updateRouteStats() {
-  for (var i = 0; i < places.length; ++i) {
-    var placeId = places[i].id;
-    var placeEl = document.getElementById(placeId);
+function updateRouteStats(flat, placeIds) {
+  var routePromises = [];
+  for (var i = 0; i < placeIds.length; ++i) {
+    var placeId = placeIds[i];
     var address = getAddressByPlaceId(placeId);
-    (function(placeEl) {
-      calculateRoute(getSelectedFlatAddress(), address, CYCLE_TRAVEL_MODE).then(function(directionsResult) {
-        var leg = directionsResult.routes[0].legs[0];
-        placeEl.querySelector("#cycle-time").innerHTML = leg.duration.text;
+    (function(placeId) {
+      var cyclePromise = calculateRoute(flat.address, address, CYCLE_TRAVEL_MODE);
+      routePromises.push(cyclePromise);
+      cyclePromise.then(function(directionsResult) {
+        onDirectionsResult(placeId, "#cycle-time", directionsResult);
+        cacheManager.cacheDistance(flat.id, placeId, directionsResult, CYCLE_TRAVEL_MODE);
       }, function(err) {
         console.log(err);
       });
-      calculateRoute(getSelectedFlatAddress(), address, TRANSIT_TRAVEL_MODE).then(function(directionsResult) {
-        var leg = directionsResult.routes[0].legs[0];
-        placeEl.querySelector("#transit-time").innerHTML = leg.duration.text;
+      var transitPromise = calculateRoute(flat.address, address, TRANSIT_TRAVEL_MODE);
+      routePromises.push(transitPromise);
+      transitPromise.then(function(directionsResult) {
+        onDirectionsResult(placeId, "#transit-time", directionsResult);
+        cacheManager.cacheDistance(flat.id, placeId, directionsResult, TRANSIT_TRAVEL_MODE);
       }, function(err) {
         console.log(err);
       });
-    })(placeEl);
+    })(placeId);
   }
+}
+
+function onDirectionsResult(placeId, transitTypeId, directionsResult) {
+  var leg = directionsResult.routes[0].legs[0];
+  updatePlaceDuration(placeId, transitTypeId, leg.duration.text);
+}
+
+function updatePlaceDuration(placeId, transitTypeId, duration) {
+  document.getElementById(placeId).querySelector(transitTypeId).innerHTML = duration;
 }
 
 function addInfoWindow(marker, content) {
@@ -150,8 +174,7 @@ function addMarker(location, id, icon) {
   return marker;
 }
 
-function showSelectedFlat() {
-  var address = getSelectedFlatAddress()
+function showSelectedFlat(address) {
   getMapLocation(address).then(function(location) {
     var marker = addMarker(location, null, getFlatMarkerImage());
     addInfoWindow(marker, "Selected flat: " + address);
@@ -201,18 +224,75 @@ function resetMap() {
   directionsDisplay.setDirections({routes: []});
 }
 
-function getSelectedFlatAddress() {
+function getSelectedFlatAddressFromHTML() {
   var sel = document.getElementById('current-flat');
   var selectedFlat = sel.options[sel.selectedIndex].text;
   return fullAddress(`${selectedFlat}`);
 }
 
-function updateFlatMarker() {
+function resetDistances() {
+  var transitTypeIds = ["#cycle-time", "#transit-time"]
+  for (var i = 0; i < places.length; ++i) {
+    for (var j = 0; j < transitTypeIds.length; ++j) {
+      updatePlaceDuration(places[i].id, transitTypeIds[j], "");
+    }
+  }
+}
+
+function onNewFlatSelected(flat) {
+  selectedFlat = new Flat(flat.value, fullAddress(`${flat.text}`));
+  resetDistances();
+
+  placeIds = [];
+  for (var i = 0; i < places.length; ++i) {
+    placeIds.push(places[i].id);
+  }
+  cacheManager.getCachedDistances(selectedFlat.id, placeIds).then(function(cachedResults) {
+    cachedDistances = cachedResults.distances;
+    for (var i = 0; i < cachedDistances.length; ++i) {
+      distance = cachedDistances[i];
+      transitTypeId = null;
+      if (distance.commuteType == "cycle") {
+        transitTypeId = "#cycle-time"
+      } else if (distance.commuteType == "transit") {
+        transitTypeId = "#transit-time"
+      }
+      if (transitTypeId == null) {
+        console.log("Error, cannot infer transit type for the cached distance. Commute type: " + distance.commuteType);
+        continue;
+      }
+      durationText = distance.minutes + " min";
+      updatePlaceDuration(distance.placeId, transitTypeId, durationText);
+    }
+
+    placesToUpdate = new Set();
+    transitTypeIds = ["cycle", "transit"];
+    for (var i = 0; i < places.length; ++i) {
+      var placeId = places[i].id;
+      for (var j = 0; j < transitTypeIds.length; j++) {
+        if (!existsInCachedDistances(placeId, transitTypeIds[j], cachedDistances)) {
+          placesToUpdate.add(placeId);
+        }
+      }
+    }
+    updateRouteStats(selectedFlat, Array.from(placesToUpdate));
+  });
+
   removeMarker(currentFlatMarker);
   resetMap();
-  showSelectedFlat();
-  updateRouteStats();
+  showSelectedFlat(selectedFlat.address);
 }
+
+function existsInCachedDistances(placeId, transitType, cachedDistances) {
+  for (var i = 0; i < cachedDistances.length; ++i) {
+    distance = cachedDistances[i];
+    if (distance.placeId == placeId && distance.commuteType == transitType) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 function getFlatMarkerImage() {
   return 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png';

@@ -44,14 +44,14 @@
 </script>
 <body>
 
-        <div id="map"></div>
+    <div id="map"></div>
     <div class="container">
       <div class="row">
         <div class="col-4">
             <div id="flat" >
-                <select id="current-flat" onchange="updateFlatMarker();">
+                <select id="current-flat" onchange="onNewFlatSelected(this.options[this.selectedIndex]);">
                     {% for flat in flats %}
-                        <option value="{{flat.id}}">{{flat.address}}</option>
+                        <option value={{flat.id}}>{{flat.address}}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -61,7 +61,7 @@
                 <ul>
                 {% for place in places %}
                     <li>
-                        <div class="row" id="{{place.id}}">
+                        <div class="row" id={{place.id}}>
                             <div class="col-5">
                                 {{place.name}}: {{place.address}}
                             </div>
@@ -83,11 +83,23 @@
                 </ul>
             </div>
         </div>
+          <div class="row">
+                {% for route in routes %}
+                    <div class="col-5">
+                        {% if route.start_place_type == 1 %}
+                            <!--route-->
+                        {% else %}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+          </div>
       </div>
     </div>
     <div id="stats"></div>
         {% load staticfiles %}
+        <script src="{% static 'commute/js/cachemanager.js' %}"></script>
         <script src="{% static 'commute/js/map.js' %}"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYf7j5i15fANkXyRU-A4zjt8_q0AnTzkE&callback=initMap"
     async defer></script>
 
