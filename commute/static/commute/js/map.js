@@ -48,7 +48,7 @@ function initMap() {
     mapLocationPromises.push(locationPromise);
   }
   Promise.all(mapLocationPromises).then(function(mapLocations) {
-    showSelectedFlat(getSelectedFlatAddressFromHTML());
+    onNewFlatSelected(getSelectedFlatFromHTML());
   });
 }
 
@@ -70,17 +70,21 @@ function showTransitRouteToPlace(placeAddress, placeId) {
 
 function calculateRoute(origin, destination, travelMode) {
   return new Promise(function(resolve, reject) {
+    var today = new Date();
+    today.setHours(10);
     directionsService.route({
       origin: origin,
       destination: destination,
       travelMode: travelMode,
       transitOptions: {
-        departureTime: new Date('July 30, 2018 13:24:00')
+        departureTime: today
       },
     }, function(response, status) {
       if (status === 'OK') {
         resolve(response);
       } else {
+        console.log(origin + " " + destination + " " + travelMode);
+        console.log(response);
         reject('Directions request failed due to ' + status)
       }
     });
@@ -224,10 +228,9 @@ function resetMap() {
   directionsDisplay.setDirections({routes: []});
 }
 
-function getSelectedFlatAddressFromHTML() {
+function getSelectedFlatFromHTML() {
   var sel = document.getElementById('current-flat');
-  var selectedFlat = sel.options[sel.selectedIndex].text;
-  return fullAddress(`${selectedFlat}`);
+  return sel.options[sel.selectedIndex];
 }
 
 function resetDistances() {
