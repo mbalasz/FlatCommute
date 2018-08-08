@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.db import models
+from multiselectfield import MultiSelectField
 
 
 class Address(models.Model):
@@ -27,22 +28,15 @@ class Flat(models.Model):
         return self.address.address
 
 
-DAY_OF_THE_WEEK = {
-    '1': 'Monday',
-    '2': 'Tuesday',
-    '3': 'Wednesday',
-    '4': 'Thursday',
-    '5': 'Friday',
-    '6': 'Saturday',
-    '7': 'Sunday',
-}
-
-
-class Day(models.CharField):
-    def __init__(self, *args, **kwargs):
-        kwargs['choices'] = tuple(sorted(DAY_OF_THE_WEEK.items()))
-        kwargs['max_length'] = 1
-        super(Day, self).__init__(*args, **kwargs)
+DAY_OF_THE_WEEK = (
+    ('Monday', 'Monday'),
+    ('Tuesday', 'Tuesday'),
+    ('Wednesday', 'Wednesday'),
+    ('Thursday', 'Thursday'),
+    ('Friday', 'Friday'),
+    ('Saturday', 'Saturday'),
+    ('Sunday', 'Sunday')
+)
 
 
 CUSTOM = 0
@@ -71,14 +65,14 @@ class Distance(models.Model):
 
 
 class Route(models.Model):
-    start_place_type = models.CharField(max_length=15, choices=PLACE_TYPE, default=CURRENT_FLAT)
+    start_place_type = models.IntegerField(choices=PLACE_TYPE, default=CURRENT_FLAT)
     start_place_custom = \
         models.ForeignKey(Place, null=True, blank=True, on_delete=models.CASCADE, related_name="routes_starting_here")
     destination_place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name="routes_with_this_destination")
-    return_place_type = models.CharField(max_length=15, choices=PLACE_TYPE, default=CURRENT_FLAT)
+    return_place_type = models.IntegerField(choices=PLACE_TYPE, default=CURRENT_FLAT)
     return_place_custom = \
         models.ForeignKey(Place, null=True, blank=True, on_delete=models.CASCADE, related_name="routes_ending_here")
-    day = Day()
+    day = MultiSelectField(choices=DAY_OF_THE_WEEK, default=None)
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
     user = models.ForeignKey('User', on_delete=models.CASCADE)
