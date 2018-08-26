@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 
-from commute.models import Flat, Place, Route, CURRENT_FLAT, Distance, CYCLE, TRANSIT, Address
+from commute.models import Flat, Place, Route, CURRENT_FLAT, Distance, CYCLE, TRANSIT, Address, DAY_OF_THE_WEEK
 
 
 def index(request):
@@ -66,20 +66,33 @@ def __cache_distance(origin, destination, commute_type, duration_sec):
     distance.save()
 
 
-def total_commute(request):
+def total_week_commute(request):
+    flat_id = request.GET.get('flatId')
+
+    total_seconds = 0
+    for day in DAY_OF_THE_WEEK:
+        total_seconds += __total_day_commute(flat_id, day[0])
+
+    return JsonResponse({'totalMinutes': total_seconds // 60})
+
+
+def total_day_commute(request):
     flat_id = request.GET.get('flatId')
     day = request.GET.get('day')
+    return JsonResponse({'totalMinutes': __total_day_commute(flat_id, day) // 60})
 
+
+def __total_day_commute(flat_id, day):
     routes = Route.objects.filter(day__contains=day)
     flat = Flat.objects.filter(id=flat_id)[0]
-    totalSeconds = 0
+    total_seconds = 0
     for route in routes:
-        start_address = flat.address if route.start_place_type else route.start_place_custom.adress
+        start_address = flat.address if route.start_place_type else route.start_place_custom.address
         return_address = flat.address if route.return_place_type else route.return_place_custom.address
-        totalSeconds += get_total_seconds(start_address, route.destination_place.address, TRANSIT)
-        totalSeconds += get_total_seconds(route.destination_place.address, return_address, TRANSIT)
+        total_seconds += get_total_seconds(start_address, route.destination_place.address, TRANSIT)
+        total_seconds += get_total_seconds(route.destination_place.address, return_address, TRANSIT)
 
-    return JsonResponse({'totalMinutes': totalSeconds // 60})
+    return total_seconds
 
 
 def get_total_seconds(origin, destination, commute_type):

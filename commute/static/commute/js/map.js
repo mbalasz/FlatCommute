@@ -96,26 +96,44 @@ function showRouteStats(directionResult, elementId) {
   document.getElementById(elementId).innerHTML = leg.duration.text;
 }
 
-function showTotalCommuteTimePerDay() {
-  for (var i = 0; i < 1; /*DAY_IDS.length;*/ ++i) {
+function getTotalCommutes() {
+  for (var i = 0; i < DAY_IDS.length; ++i) {
     getTotalCommuteTimePerDay(selectedFlat.id, DAY_IDS[i]);
   }
+  getTotalCommuteTimePerWeek(selectedFlat.id);
 }
 
-function getTotalCommuteTimePerDay(flatId, day) {
 
+function getTotalCommuteTimePerWeek(flatId) {
   $.ajax({
-    url: "totalcommute",
+    url: "totalweekcommute",
+    data: {
+      'flatId': flatId,
+    },
+    datatype: 'json',
+    success: function(data) {
+      document.getElementById('week').innerHTML = data.totalMinutes + " (" + (data.totalMinutes / 60).toFixed(2) + "h)";
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.log("Error getting total commute time per week for flatId " + flatId, textStatus);
+    }
+  })
+}
+
+
+function getTotalCommuteTimePerDay(flatId, day) {
+  $.ajax({
+    url: "totaldaycommute",
     data: {
       'flatId': flatId,
       'day': day,
     },
     datatype: 'json',
     success: function(data) {
-      console.log(data);
+      document.getElementById(day).innerHTML = data.totalMinutes;
     },
     error: function(jqXHR, textStatus, errorThrown) {
-      console.log("Error getting total commute time per day for flat" + flatId + " and day " + day, textStatus);
+      console.log("Error getting total commute time per day for flatId " + flatId + " and day " + day, textStatus);
     }
   })
 }
@@ -314,7 +332,7 @@ function onNewFlatSelected(flat) {
       }
     }
     updateCommuteTimeToPlaces(selectedFlat, Array.from(placesToUpdate));
-    showTotalCommuteTimePerDay();
+    getTotalCommutes();
   });
 
   removeMarker(currentFlatMarker);
