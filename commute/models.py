@@ -29,15 +29,14 @@ class Flat(models.Model):
 
 
 DAY_OF_THE_WEEK = (
-    ('Monday', 'Monday'),
-    ('Tuesday', 'Tuesday'),
-    ('Wednesday', 'Wednesday'),
-    ('Thursday', 'Thursday'),
-    ('Friday', 'Friday'),
-    ('Saturday', 'Saturday'),
-    ('Sunday', 'Sunday')
+    ('mon', 'Monday'),
+    ('tue', 'Tuesday'),
+    ('wed', 'Wednesday'),
+    ('thu', 'Thursday'),
+    ('fri', 'Friday'),
+    ('sat', 'Saturday'),
+    ('sun', 'Sunday')
 )
-
 
 CUSTOM = 0
 CURRENT_FLAT = 1
@@ -46,7 +45,7 @@ PLACE_TYPE = (
     (CUSTOM, "Custom place")
 )
 
-CYCLE = "cycle"
+CYCLE = "bicycling"
 TRANSIT = "transit"
 COMMUTE_TYPE = (
     (CYCLE, "Cycling"),
@@ -55,13 +54,13 @@ COMMUTE_TYPE = (
 
 
 class Distance(models.Model):
-    origin = models.ForeignKey(Flat, on_delete=models.CASCADE)
-    destination = models.ForeignKey(Place, on_delete=models.CASCADE)
+    origin = models.ForeignKey(Address, on_delete=models.CASCADE, related_name="distances_with_origin")
+    destination = models.ForeignKey(Address, on_delete=models.CASCADE, related_name="distances_with_destination")
     duration = models.DurationField(default=timedelta(minutes=0))
     commute_type = models.CharField(max_length=15, choices=COMMUTE_TYPE, default=TRANSIT)
 
     def __str__(self):
-        return self.origin.address.address + " -> " + self.destination.name + " [" + self.commute_type + "]"
+        return self.origin.address + " -> " + self.destination.address + " [" + self.commute_type + "]"
 
 
 class Route(models.Model):
@@ -83,8 +82,6 @@ class Route(models.Model):
 
 class User(models.Model):
     name = models.CharField(max_length=15)
-    selected_flat = models.ForeignKey(Flat, on_delete=models.CASCADE, related_name="users_with_flat_selected")
-    flats = models.ManyToManyField(Flat)
 
     def __str__(self):
         return self.name
