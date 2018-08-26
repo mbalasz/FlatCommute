@@ -40,9 +40,11 @@ DAY_OF_THE_WEEK = (
 
 CUSTOM = 0
 CURRENT_FLAT = 1
+NONE = 2
 PLACE_TYPE = (
     (CURRENT_FLAT, "Current flat"),
-    (CUSTOM, "Custom place")
+    (CUSTOM, "Custom place"),
+    (NONE, "None")
 )
 
 CYCLE = "bicycling"

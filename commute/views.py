@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 
-from commute.models import Flat, Place, Route, CURRENT_FLAT, Distance, CYCLE, TRANSIT, Address, DAY_OF_THE_WEEK
+from commute.models import Flat, Place, Route, CURRENT_FLAT, Distance, CYCLE, TRANSIT, Address, DAY_OF_THE_WEEK, NONE
 
 
 def index(request):
@@ -83,14 +83,19 @@ def total_day_commute(request):
 
 
 def __total_day_commute(flat_id, day):
+    # FIX: Currently we're not caching any distances for routes. For example a route of custom_place to custom_place
+    # will never be cached.
     routes = Route.objects.filter(day__contains=day)
     flat = Flat.objects.filter(id=flat_id)[0]
     total_seconds = 0
     for route in routes:
-        start_address = flat.address if route.start_place_type else route.start_place_custom.address
-        return_address = flat.address if route.return_place_type else route.return_place_custom.address
+        start_address = flat.address if route.start_place_type == CURRENT_FLAT else route.start_place_custom.address
         total_seconds += get_total_seconds(start_address, route.destination_place.address, TRANSIT)
-        total_seconds += get_total_seconds(route.destination_place.address, return_address, TRANSIT)
+
+        return_place_type = route.return_place_type
+        if return_place_type != NONE:
+            return_address = flat.address if return_place_type == CURRENT_FLAT else route.return_place_custom.address
+            total_seconds += get_total_seconds(route.destination_place.address, return_address, TRANSIT)
 
     return total_seconds
 
