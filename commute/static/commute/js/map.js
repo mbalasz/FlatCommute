@@ -1,5 +1,6 @@
 var CYCLE_TRAVEL_MODE = "BICYCLING";
 var TRANSIT_TRAVEL_MODE = "TRANSIT";
+var DAY_IDS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 var map;
 var currentFlatMarker;
@@ -13,9 +14,10 @@ var cacheManager;
 
 
 class Flat {
-  constructor(id, address) {
+  constructor(id, address, fullAddress) {
     this.id = id;
     this.address = address;
+    this.fullAddress = fullAddress;
   }
 }
 
@@ -35,7 +37,7 @@ function initMap() {
   places = getInitAddresses();
   for (i = 0; i < places.length; ++i) {
     var place = places[i];
-    var address = place.address;
+    var address = place.fullAddress;
     var name = place.name;
     var id = place.id;
     var locationPromise = getMapLocation(address);
@@ -52,9 +54,10 @@ function initMap() {
   });
 }
 
+
 function showCyclingRouteToPlace(placeAddress, placeId) {
   if (placeAddress != null) {
-    calculateRoute(selectedFlat.address, placeAddress, CYCLE_TRAVEL_MODE).then(function(directionResult) {
+    calculateRoute(selectedFlat.fullAddress, placeAddress, CYCLE_TRAVEL_MODE).then(function(directionResult) {
       directionsDisplay.setDirections(directionResult);
     });
   }
@@ -62,7 +65,7 @@ function showCyclingRouteToPlace(placeAddress, placeId) {
 
 function showTransitRouteToPlace(placeAddress, placeId) {
   if (placeAddress != null) {
-    calculateRoute(selectedFlat.address, placeAddress, TRANSIT_TRAVEL_MODE).then(function(directionResult) {
+    calculateRoute(selectedFlat.fullAddress, placeAddress, TRANSIT_TRAVEL_MODE).then(function(directionResult) {
       directionsDisplay.setDirections(directionResult);
     });
   }
@@ -83,8 +86,6 @@ function calculateRoute(origin, destination, travelMode) {
       if (status === 'OK') {
         resolve(response);
       } else {
-        console.log(origin + " " + destination + " " + travelMode);
-        console.log(response);
         reject('Directions request failed due to ' + status)
       }
     });
@@ -93,6 +94,30 @@ function calculateRoute(origin, destination, travelMode) {
 
 function showRouteStats(directionResult, elementId) {
   document.getElementById(elementId).innerHTML = leg.duration.text;
+}
+
+function showTotalCommuteTimePerDay() {
+  for (var i = 0; i < 1; /*DAY_IDS.length;*/ ++i) {
+    getTotalCommuteTimePerDay(selectedFlat.id, DAY_IDS[i]);
+  }
+}
+
+function getTotalCommuteTimePerDay(flatId, day) {
+
+  $.ajax({
+    url: "totalcommute",
+    data: {
+      'flatId': flatId,
+      'day': day,
+    },
+    datatype: 'json',
+    success: function(data) {
+      console.log(data);
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+      console.log("Error getting total commute time per day for flat" + flatId + " and day " + day, textStatus);
+    }
+  })
 }
 
 function getAddressByPlaceId(placeId) {
@@ -104,35 +129,45 @@ function getAddressByPlaceId(placeId) {
   return null;
 }
 
-function updateRouteStats(flat, placeIds) {
-  var routePromises = [];
-  for (var i = 0; i < placeIds.length; ++i) {
-    var placeId = placeIds[i];
-    var address = getAddressByPlaceId(placeId);
-    (function(placeId) {
-      var cyclePromise = calculateRoute(flat.address, address, CYCLE_TRAVEL_MODE);
-      routePromises.push(cyclePromise);
+function updateCommuteTimeToPlaces(flat, places) {
+  for (var i = 0; i < places.length; ++i) {
+    (function(place) {
+      var cyclePromise = calculateRoute(flat.address, place.fullAddress, CYCLE_TRAVEL_MODE);
       cyclePromise.then(function(directionsResult) {
-        onDirectionsResult(placeId, "#cycle-time", directionsResult);
-        cacheManager.cacheDistance(flat.id, placeId, directionsResult, CYCLE_TRAVEL_MODE);
+        onDirectionsResult(place, "#cycle-time", directionsResult);
+        cacheManager.cacheDistance(flat.address, place.address, directionsResult, CYCLE_TRAVEL_MODE);
       }, function(err) {
         console.log(err);
       });
-      var transitPromise = calculateRoute(flat.address, address, TRANSIT_TRAVEL_MODE);
-      routePromises.push(transitPromise);
+      var transitPromise = calculateRoute(flat.address, place.fullAddress, TRANSIT_TRAVEL_MODE);
       transitPromise.then(function(directionsResult) {
-        onDirectionsResult(placeId, "#transit-time", directionsResult);
-        cacheManager.cacheDistance(flat.id, placeId, directionsResult, TRANSIT_TRAVEL_MODE);
+        onDirectionsResult(place, "#transit-time", directionsResult);
+        cacheManager.cacheDistance(flat.address, place.address, directionsResult, TRANSIT_TRAVEL_MODE);
       }, function(err) {
         console.log(err);
       });
-    })(placeId);
+    })(places[i]);
+
+    (function(origin, destination) {
+      var cyclePromise = calculateRoute(origin, destination, CYCLE_TRAVEL_MODE);
+      cyclePromise.then(function(directionsResult) {
+        cacheManager.cacheDistance(origin, destination, directionsResult, CYCLE_TRAVEL_MODE);
+      }, function(err) {
+        console.log(err);
+      });
+      var transitPromise = calculateRoute(origin, destination, TRANSIT_TRAVEL_MODE);
+      transitPromise.then(function(directionsResult) {
+        cacheManager.cacheDistance(origin, destination, directionsResult, TRANSIT_TRAVEL_MODE);
+      }, function(err) {
+        console.log(err);
+      });
+    })(places[i].address, flat.address);
   }
 }
 
-function onDirectionsResult(placeId, transitTypeId, directionsResult) {
+function onDirectionsResult(place, transitTypeId, directionsResult) {
   var leg = directionsResult.routes[0].legs[0];
-  updatePlaceDuration(placeId, transitTypeId, leg.duration.text);
+  updatePlaceDuration(place.id, transitTypeId, leg.duration.text);
 }
 
 function updatePlaceDuration(placeId, transitTypeId, duration) {
@@ -243,7 +278,7 @@ function resetDistances() {
 }
 
 function onNewFlatSelected(flat) {
-  selectedFlat = new Flat(flat.value, fullAddress(`${flat.text}`));
+  selectedFlat = new Flat(flat.value, flat.text, fullAddress(`${flat.text}`));
   resetDistances();
 
   placeIds = [];
@@ -255,7 +290,7 @@ function onNewFlatSelected(flat) {
     for (var i = 0; i < cachedDistances.length; ++i) {
       distance = cachedDistances[i];
       transitTypeId = null;
-      if (distance.commuteType == "cycle") {
+      if (distance.commuteType == "bicycling") {
         transitTypeId = "#cycle-time"
       } else if (distance.commuteType == "transit") {
         transitTypeId = "#transit-time"
@@ -269,21 +304,22 @@ function onNewFlatSelected(flat) {
     }
 
     placesToUpdate = new Set();
-    transitTypeIds = ["cycle", "transit"];
+    transitTypeIds = ["bicycling", "transit"];
     for (var i = 0; i < places.length; ++i) {
       var placeId = places[i].id;
       for (var j = 0; j < transitTypeIds.length; j++) {
         if (!existsInCachedDistances(placeId, transitTypeIds[j], cachedDistances)) {
-          placesToUpdate.add(placeId);
+          placesToUpdate.add(places[i]);
         }
       }
     }
-    updateRouteStats(selectedFlat, Array.from(placesToUpdate));
+    updateCommuteTimeToPlaces(selectedFlat, Array.from(placesToUpdate));
+    showTotalCommuteTimePerDay();
   });
 
   removeMarker(currentFlatMarker);
   resetMap();
-  showSelectedFlat(selectedFlat.address);
+  showSelectedFlat(selectedFlat.fullAddress);
 }
 
 function existsInCachedDistances(placeId, transitType, cachedDistances) {

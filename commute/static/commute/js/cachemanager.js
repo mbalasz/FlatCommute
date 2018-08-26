@@ -20,16 +20,13 @@ class CacheManager {
     });
   }
 
-  cacheDistance(flatId, placeId, direction, commuteType) {
+  cacheDistance(origin, destination, direction, commuteType) {
     var leg = direction.routes[0].legs[0];
     $.ajax({
-        url: "cache/update/distances",
+        url: "cache/update/distance",
         data: {
-
-        },
-        data: {
-          'flatId': flatId,
-          'placeId': placeId,
+          'origin': origin,
+          'destination': destination,
           'commuteType': commuteType,
           'seconds': leg.duration.value,
         },
@@ -38,7 +35,7 @@ class CacheManager {
           this.distancesBuffer = [];
         },
         error: function(jqXHR, textStatus, errorThrown) {
-          console.log("Error caching distance for flat id " + flatId + " and placeId " + placeId, textStatus);
+          console.log("Error caching distance for origin " + origin + " and destination " + destination, textStatus);
         }
       })
   }

@@ -35,7 +35,8 @@
           var place = {
             id: {{place.id}},
             name: "{{place.name}}",
-            address: fullAddress("{{place.address}}"),
+            address: "{{place.address}}",
+            fullAddress: fullAddress("{{place.address}}"),
           }
           places.push(place);
       {% endfor %}
@@ -56,7 +57,8 @@
                 </select>
             </div>
         </div>
-        <div class="col-lg">
+      </div>
+      <div class="row">
             <div>
                 <ul>
                 {% for place in places %}
@@ -82,18 +84,26 @@
                 {% endfor %}
                 </ul>
             </div>
-        </div>
-          <div class="row">
-                {% for route in routes %}
-                    <div class="col-5">
-                        {% if route.start_place_type == 1 %}
-                            <!--route-->
-                        {% else %}
-                        {% endif %}
-                    </div>
-                {% endfor %}
-          </div>
-      </div>
+       </div>
+            <div class="row">
+                <div class="col border">Monday</div>
+                <div class="col border">Tuesday</div>
+                <div class="col border">Wednesday</div>
+                <div class="col border">Thursday</div>
+                <div class="col border">Friday</div>
+                <div class="col border">Saturday</div>
+                <div class="col border">Sunday</div>
+            </div>
+            <div class="row">
+                <div id="mon" class="col border"></div>
+                <div id="tue" class="col border"></div>
+                <div id="wed" class="col border"></div>
+                <div id="thu" class="col border"></div>
+                <div id="fri" class="col border"></div>
+                <div id="sat" class="col border"></div>
+                <div id="sun" class="col border"></div>
+            </div>
+
     </div>
     <div id="stats"></div>
         {% load staticfiles %}
@@ -105,3 +115,31 @@
 
 </body>
 </html>
+
+
+            <!--{% for route in routes %}-->
+                <!--<div class="row" id={{route.id}}>-->
+                    <!--<div class="col border">-->
+                        <!--{% if route.start_place_type == 1 %}-->
+                            <!--<div class="route-start-place-current-flat">Home</div>-->
+                        <!--{% else %}-->
+                            <!--{{route.start_place_custom}}-->
+                        <!--{% endif %}-->
+                    <!--</div>-->
+                    <!--<div class="col border">-->
+                        <!--<div class="route-destination">{{route.destination_place}}</div>-->
+                    <!--</div>-->
+                    <!--<div class="col border">-->
+                        <!--{% if route.return_place_type == 1 %}-->
+                            <!--<div class="route-return-place-current-flat">Home</div>-->
+                        <!--{% else %}-->
+                            <!--{{route.return_place_custom}}-->
+                        <!--{% endif %}-->
+                    <!--</div>-->
+                    <!--<div class="col border">-->
+                        <!--{% for day in route.day %}-->
+                            <!--{{day}}{% if not forloop.last %}, {% endif %}-->
+                        <!--{% endfor %}-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--{% endfor %}-->
